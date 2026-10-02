@@ -193,7 +193,9 @@ static void load_view(app *a, view_id v) {
         case VIEW_PROJECTS:
             json_free(a->projects); a->projects = NULL;
             r = api_list_projects(key);
-            if (r.status == API_OK) a->projects = r.data, r.data = NULL;
+            if (r.status == API_OK){
+                a->projects =json_take(r.data,"projects");
+            }
             a->list_sel = 0; a->list_scroll = 0;
             break;
         case VIEW_ORDERS:
@@ -211,7 +213,9 @@ static void load_view(app *a, view_id v) {
         case VIEW_ANNOUNCEMENTS:
             json_free(a->announcements); a->announcements = NULL;
             r = api_list_announcements(key);
-            if (r.status == API_OK) a->announcements = r.data, r.data = NULL;
+            if (r.status == API_OK){
+                a->announcements = json_take(r.data,"announcements");
+            }
             a->list_sel = 0; a->list_scroll = 0;
             break;
         case VIEW_SHOP:

@@ -65,4 +65,5 @@ int json_get_bool(
 );
 size_t json_array_count(const json_value *arr);
 json_value *json_array_at(const json_value *arr,size_t idx);
+json_value *json_take(json_value *obj,const char *key);
 #endif

@@ -374,6 +374,17 @@ json_value *json_get(const json_value *obj, const char *key) {
     }
     return NULL;
 }
+json_value *json_take(json_value *obj,const char *key){
+    if(!obj || obj->type != JSON_OBJECT)return NULL;
+    for(size_t i=0;i<obj->u.object.count;i++){
+        if(strcmp(obj->u.object.keys[i],key)==0){
+            json_value *v = obj->u.object.values[i];
+            obj->u.object.values[i]=NULL;
+            return v;
+        }
+    }
+    return NULL;
+}
 
 int json_is_null(const json_value *obj, const char *key) {
     if (!obj || obj->type != JSON_OBJECT) return 1;
