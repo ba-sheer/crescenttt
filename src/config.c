@@ -5,7 +5,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #ifdef _WIN32
-#include<dirent.h>
+#include<direct.h>
 #define MKDIR(path) _mkdir(path)
 #else
 #define MKDIR(path)mkdir(path,0700)
