@@ -13,7 +13,7 @@
 #include "ui.h"
 #include "api.h"
 #include "json.h"
-#include <ncurses.h>
+#include "curses_compat.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>

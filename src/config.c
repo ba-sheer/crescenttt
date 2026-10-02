@@ -4,6 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#ifdef _WIN32
+#include<dirent.h>
+#define MKDIR(path) _mkdir(path)
+#else
+#define MKDIR(path)mkdir(path,0700)
+#endif
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -65,11 +71,11 @@ int config_save(const crescent_config *cfg) {
     for (char *p = tmp + 1; *p; p++) {
         if (*p == '/') {
             *p = '\0';
-            mkdir(tmp, 0700);
+            mkdir(tmp);
             *p = '/';
         }
     }
-    mkdir(tmp, 0700);
+    mkdir(tmp);
 
     char file[600];
     snprintf(file, sizeof(file), "%s/config", dir);
