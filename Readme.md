@@ -1,4 +1,7 @@
-# CRESCENT TUI
+# Crescent TUI
+
+[![Build](https://img.shields.io/github/actions/workflow/status/ba-sheer/crescenttt/c-cpp.yml?branch=main&label=build)](https://github.com/ba-sheer/crescenttt/actions/workflows/c-cpp.yml)
+[![Docs](https://img.shields.io/badge/docs-Starlight-4f46e5)](https://ba-sheer.github.io/crescenttt/)
 <p align="center">
   <img
     src="https://github.com/user-attachments/assets/d75c7b03-e96b-4d69-83a2-6ef6d00d0650"
