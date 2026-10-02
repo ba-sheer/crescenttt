@@ -37,6 +37,8 @@
   </tr>
 </table>
 
+# [AI DECLARATION]: used for UI and bug fixing and no over use 
+
 ## Requirements
 
 ### Linux
