@@ -71,11 +71,11 @@ int config_save(const crescent_config *cfg) {
     for (char *p = tmp + 1; *p; p++) {
         if (*p == '/') {
             *p = '\0';
-            mkdir(tmp);
+            MKDIR(tmp);
             *p = '/';
         }
     }
-    mkdir(tmp);
+            MKDIR(tmp);
 
     char file[600];
     snprintf(file, sizeof(file), "%s/config", dir);
