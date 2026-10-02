@@ -255,14 +255,69 @@ static json_value *parse_value(parser *ps, char **err) {
         return new_value(JSON_NULL);
     }
     if (c == '-' || isdigit((unsigned char)c)) {
-        char *end;
-        double d = strtod(ps->p, &end);
-        if (end == ps->p) { fail(err, ps, "bad number"); return NULL; }
-        ps->p = end;
-        json_value *v = new_value(JSON_NUMBER);
-        v->u.number = d;
-        return v;
+    const char *p = ps->p;
+
+    if (*p == '-')
+        p++;
+
+    /* Integer part */
+    if (*p == '0') {
+        p++;
+        if (isdigit((unsigned char)*p)) {
+            fail(err, ps, "invalid number");
+            return NULL;
+        }
+    } else if (*p >= '1' && *p <= '9') {
+        while (isdigit((unsigned char)*p))
+            p++;
+    } else {
+        fail(err, ps, "invalid number");
+        return NULL;
     }
+
+    /* Fraction */
+    if (*p == '.') {
+        p++;
+
+        if (!isdigit((unsigned char)*p)) {
+            fail(err, ps, "invalid number");
+            return NULL;
+        }
+
+        while (isdigit((unsigned char)*p))
+            p++;
+    }
+
+    /* Exponent */
+    if (*p == 'e' || *p == 'E') {
+        p++;
+
+        if (*p == '+' || *p == '-')
+            p++;
+
+        if (!isdigit((unsigned char)*p)) {
+            fail(err, ps, "invalid number");
+            return NULL;
+        }
+
+        while (isdigit((unsigned char)*p))
+            p++;
+    }
+
+    char *end;
+    double d = strtod(ps->p, &end);
+
+    if (end != p) {
+        fail(err, ps, "invalid number");
+        return NULL;
+    }
+
+    ps->p = end;
+
+    json_value *v = new_value(JSON_NUMBER);
+    v->u.number = d;
+    return v;
+}
     fail(err, ps, "unexpected character");
     return NULL;
 }

@@ -102,7 +102,7 @@ api_result api_get_project(const char *api_key,long project_id){
     return do_get(path,api_key);
 }
 api_result api_list_orders(const char *api_key){
-    return do_get("api/v1/me/orders",api_key);
+    return do_get("/api/v1/me/orders",api_key);
 }
 api_result api_list_notifications(const char *api_key,int limit){
     if(limit<1) limit = 1;

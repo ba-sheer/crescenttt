@@ -667,15 +667,38 @@ static void draw_content(app *a, int top, int left, int width, int height) {
 static void render(app *a) {
     int rows, cols;
     getmaxyx(stdscr, rows, cols);
+
     erase();
+
+    if (rows < 12 || cols < SIDEBAR_W + 20) {
+        const char *msg = "Terminal too small. Resize the terminal.";
+        int y = rows > 0 ? rows / 2 : 0;
+        int x = 0;
+
+        if (cols > (int)strlen(msg))
+            x = (cols - (int)strlen(msg)) / 2;
+
+        if (rows > 0 && cols > 0)
+            mvprintw(y, x, "%.*s", cols, msg);
+
+        refresh();
+        return;
+    }
+
     draw_header(a, cols);
+
     int content_top = a->view == VIEW_PROJECT_DETAIL ? 3 : 2;
+    int content_left = SIDEBAR_W + 2;
+    int content_width = cols - SIDEBAR_W - 3;
+    int content_height = rows - content_top - 1;
+
     draw_sidebar(a, 2, rows - 3);
-    draw_content(a, content_top, SIDEBAR_W + 2, cols - SIDEBAR_W - 3, rows - content_top - 1);
+    draw_content(a, content_top, content_left,
+                 content_width, content_height);
     draw_footer(a, rows - 1, cols);
+
     refresh();
 }
-
 /* ---- first-run API key prompt ---------------------------------------- */
 
 /* Simple centered modal: prompts for a line of text, drawing '*' instead
@@ -686,9 +709,17 @@ static int prompt_line(const char *title, const char *prompt, char *buf, size_t 
     getmaxyx(stdscr, rows, cols);
     int w = cols > 70 ? 64 : cols - 6;
     int h = 6;
-    int y0 = (rows - h) / 2, x0 = (cols - w) / 2;
+
+    if (rows < h || w < 20) {
+        return 0;
+    }
+
+    int y0 = (rows - h) / 2;
+    int x0 = (cols - w) / 2;
 
     WINDOW *win = newwin(h, w, y0, x0);
+    if (!win)
+        return 0;
     keypad(win, TRUE);
     size_t len = strlen(buf);
     curs_set(1);
@@ -730,22 +761,48 @@ static int prompt_line(const char *title, const char *prompt, char *buf, size_t 
 static int confirm_dialog(const char *question) {
     int rows, cols;
     getmaxyx(stdscr, rows, cols);
+
     int w = (int)strlen(question) + 12;
-    if (w > cols - 4) w = cols - 4;
+
+    if (w > cols - 4)
+        w = cols - 4;
+
     int h = 4;
-    int y0 = (rows - h) / 2, x0 = (cols - w) / 2;
+
+    if (rows < h || w < 20)
+        return 0;
+
+    int y0 = (rows - h) / 2;
+    int x0 = (cols - w) / 2;
+
     WINDOW *win = newwin(h, w, y0, x0);
+    if (!win)
+        return 0;
+
     keypad(win, TRUE);
     box(win, 0, 0);
+
     mvwprintw(win, 1, 2, "%.*s", w - 4, question);
     mvwprintw(win, 2, 2, "[y]es   [n]o");
+
     wrefresh(win);
+
     int result = 0;
+
     for (;;) {
         int ch = wgetch(win);
-        if (ch == 'y' || ch == 'Y') { result = 1; break; }
-        if (ch == 'n' || ch == 'N' || ch == 27) { result = 0; break; }
+
+        if (ch == 'y' || ch == 'Y') {
+            result = 1;
+            break;
+        }
+
+        if (ch == 'n' || ch == 'N' || ch == 27) {
+            result = 0;
+            break;
+        }
     }
+
     delwin(win);
     return result;
 }
@@ -761,8 +818,13 @@ static void ensure_api_key(crescent_config *cfg) {
                      key, sizeof(key), 1)) {
         strncpy(cfg->api_key, key, sizeof(cfg->api_key) - 1);
         cfg->api_key[sizeof(cfg->api_key) - 1] = '\0';
-        if (confirm_dialog("Save this key to ~/.config/crescent-tui/config (mode 600)?"))
-            config_save(cfg);
+        if (confirm_dialog("Save this key to ~/.config/crescent-tui/config (mode 600)?")) {
+            if (config_save(cfg) != 0) {
+                fprintf(stderr, "Failed to save configuration.\n");
+            } else {
+                fprintf(stderr, "API key saved.\n");
+            }
+        }
     }
 }
 
@@ -827,7 +889,9 @@ static void cycle_region(app *a) {
         strncpy(a->cfg->region, FALLBACK_REGIONS[idx], sizeof(a->cfg->region) - 1);
         a->cfg->region[sizeof(a->cfg->region) - 1] = '\0';
     }
-    config_save(a->cfg);
+    if(config_save(a->cfg)!=0){
+        fprintf(stderr,"failed to save region configuration.\n");
+    }
 }
 
 static void handle_key(app *a, int ch) {
