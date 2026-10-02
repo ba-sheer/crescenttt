@@ -6,7 +6,7 @@ hero:
   tagline: Check your projects, orders, notifications and announcements without leaving the terminal.
   actions:
     - text: Install
-      link: /getting-started/installation/
+      link: /crescenttt/getting-started/installation/
       icon: right-arrow
     - text: View on GitHub
       link: https://github.com/ba-sheer/crescenttt
