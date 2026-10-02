@@ -3,5 +3,5 @@
 
 #include "config.h"
 
-
+void ui_run(crescent_config *cfg);
 #endif

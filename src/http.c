@@ -15,7 +15,10 @@ static size_t write_cb(char *ptr,size_t size,size_t nmemb,void *userdata){
     if(b->len+add+1>b->cap){
         size_t newcap = (b->cap == 0)? 4096 : b->cap;
         while(newcap < b->len+add +1) newcap*=2;
-        b->data=realloc(b->data,newcap);
+        char *new_data = realloc(b->data,newcap);
+        if(!new_data)
+            return 0;
+        b->data = new_data;
         b->cap = newcap;
     }
     memcpy(b->data +b->len,ptr,add);
@@ -27,7 +30,7 @@ static size_t write_cb(char *ptr,size_t size,size_t nmemb,void *userdata){
 void http_global_init(void){
     curl_global_init(CURL_GLOBAL_DEFAULT);
 }
-void http_global_init(void){
+void http_global_cleanup(void){
     curl_global_cleanup();
 }
 int http_get(const char *url,const char *bearer_token,http_response *out){
@@ -55,7 +58,7 @@ int http_get(const char *url,const char *bearer_token,http_response *out){
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
 
     char errbuf[CURL_ERROR_SIZE];
-    errbuf[0]="\0";
+    errbuf[0]='\0';
     curl_easy_setopt(curl,CURLOPT_ERRORBUFFER,errbuf);
     CURLcode res = curl_easy_perform(curl);
 

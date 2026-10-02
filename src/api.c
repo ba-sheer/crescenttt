@@ -28,6 +28,7 @@ static api_result do_get(const char *path,const char *api_key){
     }
     char *perr = NULL;
     json_value *body = resp.body_len ? json_parse(resp.body,&perr):NULL;
+    long http_status = resp.status;
     if(resp.status == 200){
         if(!body){
             char msg[256];
@@ -36,7 +37,7 @@ static api_result do_get(const char *path,const char *api_key){
         );
         free(perr);
         http_response_free(&resp);
-        return make_error(API_ERR_BAD_JSON,resp.status,msg);
+        return make_error(API_ERR_BAD_JSON,http_status,msg);
         }
         api_result r ={0};
         r.status = API_OK;
@@ -71,6 +72,7 @@ static api_result do_get(const char *path,const char *api_key){
         api_result r = make_error(status,resp.status,msg);
         r.retry_after_secs= (int)retry;
         json_free(body);
+        free(perr);
         http_response_free(&resp);
         return r;
     case 503:
@@ -83,8 +85,9 @@ static api_result do_get(const char *path,const char *api_key){
         break;
     }
     json_free(body);
+    free(perr);
     http_response_free(&resp);
-    return make_error(status, resp.status,msg);
+    return make_error(status, http_status,msg);
 }
 
 api_result api_get_me(const char *api_key){
@@ -93,7 +96,7 @@ api_result api_get_me(const char *api_key){
 api_result api_list_projects(const char *api_key){
     return do_get("/api/v1/me/projects",api_key);
 }
-api_result api_get_projects(const char *api_key,long project_id){
+api_result api_get_project(const char *api_key,long project_id){
     char path[128];
     snprintf(path,sizeof(path),"/api/v1/me/projects/%ld", project_id);
     return do_get(path,api_key);
@@ -108,13 +111,13 @@ api_result api_list_notifications(const char *api_key,int limit){
     snprintf(path,sizeof(path),"/api/v1/me/notifications?limit=%d",limit);
     return do_get(path,api_key);
 }
-api_result api_get_announcements(const char *api_key){
+api_result api_list_announcements(const char *api_key){
     return do_get("/api/v1/announcements",api_key);
 }
 api_result api_get_shop_items(void){
     return do_get("/api/v1/shop/items",NULL);
 }
-api_result api_result_free(api_result *r){
+void api_result_free(api_result *r){
     if(!r)return;
     free(r->message);
     json_free(r->data);

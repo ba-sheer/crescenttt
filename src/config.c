@@ -8,9 +8,9 @@
 #include <unistd.h>
 
 static void safe_copy(char *dst, size_t dstsize, const char *src) {
-    if (dstsize == 0) return;
-    strncpy(dst, src, dstsize - 1);
-    dst[dstsize - 1] = '\0';
+    if(dstsize == 0) return;
+    if(!src) src = "";
+    snprintf(dst,dstsize,"%s",src);
 }
 
 static void config_path(char *out, size_t outlen) {

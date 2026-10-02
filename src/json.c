@@ -64,16 +64,22 @@ static void append_utf8(char **buf, size_t *len, size_t *cap, unsigned int cp) {
     *len += (size_t)n;
 }
 
-static unsigned int hex4(const char *p) {
-    unsigned int v = 0;
-    for (int i = 0; i < 4; i++) {
-        char c = p[i];
-        v <<= 4;
-        if (c >= '0' && c <= '9') v |= (unsigned int)(c - '0');
-        else if (c >= 'a' && c <= 'f') v |= (unsigned int)(c - 'a' + 10);
-        else if (c >= 'A' && c <= 'F') v |= (unsigned int)(c - 'A' + 10);
+static int hex4 (const char *p,unsigned int *out){
+    unsigned int v= 0;
+    for(int i=0;i<4;i++){
+        unsigned char c = (unsigned char)p[i];
+        v <<=4;
+        if(c>= '0'&& c<='9')
+            v|=(unsigned int)(c - '0');
+        else if (c >= 'a'&&c<='f')
+            v|=(unsigned int)(c- 'a'+10);
+        else if(c >= 'A'&& c<='F')
+            v|=(unsigned int)(c - 'A'+10);
+        else 
+            return 0;
     }
-    return v;
+    *out = v;
+    return 1;
 }
 
 static char *parse_string_raw(parser *ps, char **err) {
@@ -96,15 +102,44 @@ static char *parse_string_raw(parser *ps, char **err) {
                 case 't': append_utf8(&buf, &len, &cap, '\t'); ps->p++; break;
                 case 'u': {
                     ps->p++;
-                    unsigned int cp = hex4(ps->p);
-                    ps->p += 4;
-                    if (cp >= 0xD800 && cp <= 0xDBFF && ps->p[0] == '\\' && ps->p[1] == 'u') {
-                        unsigned int lo = hex4(ps->p + 2);
-                        if (lo >= 0xDC00 && lo <= 0xDFFF) {
-                            cp = 0x10000 + ((cp - 0xD800) << 10) + (lo - 0xDC00);
-                            ps->p += 6;
-                        }
+
+                    unsigned int cp;
+
+                    if (!hex4(ps->p, &cp)) {
+                        free(buf);
+                        fail(err, ps, "invalid unicode escape");
+                        return NULL;
                     }
+
+                    ps->p += 4;
+
+                    if (cp >= 0xD800 && cp <= 0xDBFF) {
+                        if (ps->p[0] != '\\' || ps->p[1] != 'u') {
+                            free(buf);
+                            fail(err, ps, "unpaired unicode surrogate");
+                            return NULL;
+                        }
+
+                        unsigned int lo;
+
+                        if (!hex4(ps->p + 2, &lo) ||
+                            lo < 0xDC00 || lo > 0xDFFF) {
+                            free(buf);
+                            fail(err, ps, "invalid unicode surrogate pair");
+                            return NULL;
+                        }
+
+                        cp = 0x10000 +
+                            ((cp - 0xD800) << 10) +
+                            (lo - 0xDC00);
+
+                        ps->p += 6;
+                    } else if (cp >= 0xDC00 && cp <= 0xDFFF) {
+                        free(buf);
+                        fail(err, ps, "unpaired unicode surrogate");
+                        return NULL;
+                    }
+
                     append_utf8(&buf, &len, &cap, cp);
                     break;
                 }
@@ -114,7 +149,12 @@ static char *parse_string_raw(parser *ps, char **err) {
                     return NULL;
             }
         } else {
-            append_utf8(&buf, &len, &cap, c);
+            if(c< 0x20){
+                free(buf);
+                fail(err,ps,"control character in string");
+                return NULL;
+            }
+            append_utf8 (&buf,&len,&cap,c);
             ps->p++;
         }
     }
@@ -235,7 +275,11 @@ json_value *json_parse(const char *text, char **err) {
     json_value *v = parse_value(&ps, err);
     if (!v) return NULL;
     skip_ws(&ps);
-    /* Trailing garbage is tolerated; we only need the first value. */
+    if(*ps.p != '\0'){
+        json_free(v);
+        fail(err,&ps,"trailing characters after JSON value");
+        return NULL;
+    }
     return v;
 }
 
